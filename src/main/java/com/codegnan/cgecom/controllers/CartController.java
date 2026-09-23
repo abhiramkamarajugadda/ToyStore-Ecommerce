@@ -1,0 +1,355 @@
+package com.codegnan.cgecom.controllers;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.codegnan.cgecom.model.Order;
+import com.codegnan.cgecom.model.OrderItem;
+import com.codegnan.cgecom.model.Product;
+import com.codegnan.cgecom.model.User;
+import com.codegnan.cgecom.service.iface.OrderService;
+import com.codegnan.cgecom.service.iface.ProductService;
+import com.codegnan.cgecom.service.iface.UserService;
+import com.codegnan.cgecom.service.impl.RazorpayService;
+import jakarta.servlet.http.HttpSession;
+
+@Controller
+@RequestMapping({"/cart", "/cart/"})
+public class CartController {
+
+    private final ProductService productService;
+    private final OrderService orderService;
+    private final UserService userService;
+    private final RazorpayService razorpayService;
+
+    public CartController(ProductService productService, OrderService orderService, UserService userService, RazorpayService razorpayService) {
+        this.productService = productService;
+        this.orderService = orderService;
+        this.userService = userService;
+        this.razorpayService = razorpayService;
+    }
+
+    @GetMapping({"", "/"})
+    public String viewCart(HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        if (loggedInUser == null) {
+            redirectAttributes.addFlashAttribute("error", "Please sign in with your credentials to access your shopping cart.");
+            return "redirect:/login";
+        }
+
+        List<OrderItem> cartItems = getCartItemsFromSession(session);
+
+        double subtotal = 0;
+        int totalItemsCount = 0;
+        for (OrderItem item : cartItems) {
+            subtotal += item.getPrice() * item.getQuantity();
+            totalItemsCount += item.getQuantity();
+        }
+
+        model.addAttribute("cartItems", cartItems);
+        model.addAttribute("subtotal", subtotal);
+        model.addAttribute("totalPrice", subtotal);
+        model.addAttribute("totalItemsCount", totalItemsCount);
+        return "cart";
+    }
+
+    @GetMapping("/count")
+    @ResponseBody
+    public Map<String, Object> getCartCount(HttpSession session) {
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        Map<String, Object> res = new HashMap<>();
+        if (loggedInUser == null) {
+            res.put("count", 0);
+            return res;
+        }
+
+        List<OrderItem> cartItems = getCartItemsFromSession(session);
+        int totalCount = cartItems.stream().mapToInt(OrderItem::getQuantity).sum();
+        res.put("count", totalCount);
+        return res;
+    }
+
+    @RequestMapping(value = "/add", method = {RequestMethod.GET, RequestMethod.POST})
+    public String addToCart(@RequestParam int productId, 
+                            @RequestParam(defaultValue = "1") int quantity, 
+                            @RequestParam(required = false, defaultValue = "false") boolean ajax,
+                            @RequestParam(required = false) String redirectUrl,
+                            HttpSession session,
+                            RedirectAttributes redirectAttributes) {
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        if (loggedInUser == null) {
+            redirectAttributes.addFlashAttribute("error", "Please sign in with your credentials to add items to your cart.");
+            return "redirect:/login";
+        }
+
+        if (quantity < 1) {
+            quantity = 1;
+        }
+
+        List<OrderItem> cartItems = getCartItemsFromSession(session);
+        Product product = productService.getProductById(productId);
+
+        if (product == null) {
+            redirectAttributes.addFlashAttribute("error", "Product not found.");
+            return "redirect:" + (redirectUrl != null && !redirectUrl.isEmpty() ? redirectUrl : "/products");
+        }
+
+        boolean productExists = false;
+        for (OrderItem item : cartItems) {
+            if (item.getProduct() != null && item.getProduct().getId() == productId) {
+                item.setQuantity(item.getQuantity() + quantity);
+                productExists = true;
+                break;
+            }
+        }
+
+        if (!productExists) {
+            OrderItem newItem = new OrderItem();
+            newItem.setProduct(product);
+            newItem.setPrice(product.getPrice());
+            newItem.setQuantity(quantity);
+            cartItems.add(newItem);
+        }
+
+        session.setAttribute("cartItems", cartItems);
+        redirectAttributes.addFlashAttribute("success", "Added \"" + product.getName() + "\" to your cart!");
+
+        if (redirectUrl != null && !redirectUrl.trim().isEmpty()) {
+            return "redirect:" + redirectUrl;
+        }
+        return "redirect:/products";
+    }
+
+    @RequestMapping(value = "/update", method = {RequestMethod.GET, RequestMethod.POST})
+    public String updateCart(@RequestParam int productId, 
+                             @RequestParam(required = false) Integer quantity, 
+                             @RequestParam(required = false) String action, 
+                             HttpSession session,
+                             RedirectAttributes redirectAttributes) {
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        if (loggedInUser == null) {
+            redirectAttributes.addFlashAttribute("error", "Please sign in with your credentials to update your cart.");
+            return "redirect:/login";
+        }
+
+        List<OrderItem> cartItems = getCartItemsFromSession(session);
+
+        // Find existing item
+        OrderItem targetItem = null;
+        for (OrderItem item : cartItems) {
+            if (item.getProduct() != null && item.getProduct().getId() == productId) {
+                targetItem = item;
+                break;
+            }
+        }
+
+        if (targetItem != null) {
+            if ("decrease".equalsIgnoreCase(action) || "minus".equalsIgnoreCase(action)) {
+                int newQty = targetItem.getQuantity() - 1;
+                if (newQty <= 0) {
+                    cartItems.remove(targetItem);
+                } else {
+                    targetItem.setQuantity(newQty);
+                }
+            } else if ("increase".equalsIgnoreCase(action) || "plus".equalsIgnoreCase(action)) {
+                targetItem.setQuantity(targetItem.getQuantity() + 1);
+            } else if ("remove".equalsIgnoreCase(action) || "delete".equalsIgnoreCase(action)) {
+                cartItems.remove(targetItem);
+            } else if (quantity != null) {
+                if (quantity <= 0) {
+                    cartItems.remove(targetItem);
+                } else {
+                    targetItem.setQuantity(quantity);
+                }
+            }
+        }
+
+        session.setAttribute("cartItems", cartItems);
+        redirectAttributes.addFlashAttribute("info", "Cart updated successfully.");
+        return "redirect:/cart";
+    }
+
+    @RequestMapping(value = {"/remove/{productId}", "/remove", "/delete/{productId}", "/delete"}, method = {RequestMethod.GET, RequestMethod.POST})
+    public String removeItem(@PathVariable(required = false) Integer productId,
+                             @RequestParam(required = false) Integer id,
+                             HttpSession session, 
+                             RedirectAttributes redirectAttributes) {
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        if (loggedInUser == null) {
+            redirectAttributes.addFlashAttribute("error", "Please sign in with your credentials to manage your cart.");
+            return "redirect:/login";
+        }
+
+        int targetId = productId != null ? productId : (id != null ? id : -1);
+        if (targetId != -1) {
+            List<OrderItem> cartItems = getCartItemsFromSession(session);
+            cartItems.removeIf(item -> item.getProduct() != null && item.getProduct().getId() == targetId);
+            session.setAttribute("cartItems", cartItems);
+            redirectAttributes.addFlashAttribute("info", "Item removed from cart.");
+        }
+        return "redirect:/cart";
+    }
+
+    @RequestMapping(value = "/clear", method = {RequestMethod.GET, RequestMethod.POST})
+    public String clearCart(HttpSession session, RedirectAttributes redirectAttributes) {
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        if (loggedInUser == null) {
+            redirectAttributes.addFlashAttribute("error", "Please sign in with your credentials to clear your cart.");
+            return "redirect:/login";
+        }
+
+        session.removeAttribute("cartItems");
+        redirectAttributes.addFlashAttribute("info", "Your cart has been cleared.");
+        return "redirect:/cart";
+    }
+
+    @RequestMapping(value = "/checkout", method = {RequestMethod.GET, RequestMethod.POST})
+    public String checkout(HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+        List<OrderItem> cartItems = getCartItemsFromSession(session);
+        User sessionUser = (User) session.getAttribute("loggedInUser");
+
+        if (sessionUser == null) {
+            redirectAttributes.addFlashAttribute("error", "Please sign in to proceed with checkout.");
+            return "redirect:/login";
+        }
+
+        if (cartItems == null || cartItems.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Your cart is currently empty.");
+            return "redirect:/products";
+        }
+
+        User loggedInUser = userService.getUserById(sessionUser.getId());
+        if (loggedInUser == null) {
+            loggedInUser = sessionUser;
+        }
+
+        Order order = new Order();
+        order.setUser(loggedInUser);
+        order.setOrderStatus("COMPLETED");
+        order.setOrderDate(LocalDateTime.now());
+
+        double totalPrice = 0;
+        List<OrderItem> persistentItems = new ArrayList<>();
+        for (OrderItem item : cartItems) {
+            if (item.getProduct() != null) {
+                OrderItem orderItem = new OrderItem();
+                orderItem.setOrder(order);
+                orderItem.setProduct(item.getProduct());
+                orderItem.setPrice(item.getPrice());
+                orderItem.setQuantity(item.getQuantity());
+                totalPrice += item.getPrice() * item.getQuantity();
+                persistentItems.add(orderItem);
+            }
+        }
+
+        order.setTotalPrice(BigDecimal.valueOf(totalPrice));
+        order.setOrderItems(persistentItems);
+
+        orderService.saveOrder(order);
+        session.removeAttribute("cartItems");
+
+        model.addAttribute("order", order);
+        return "checkout-success";
+    }
+
+    @GetMapping("/payment-success")
+    public String showPaymentSuccessPage(HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+        User sessionUser = (User) session.getAttribute("loggedInUser");
+        if (sessionUser == null) {
+            redirectAttributes.addFlashAttribute("error", "Please sign in with your credentials to view payment status.");
+            return "redirect:/login";
+        }
+
+        List<OrderItem> cartItems = getCartItemsFromSession(session);
+
+        if (cartItems != null && !cartItems.isEmpty()) {
+            User loggedInUser = userService.getUserById(sessionUser.getId());
+            if (loggedInUser == null) {
+                loggedInUser = sessionUser;
+            }
+
+            Order order = new Order();
+            order.setUser(loggedInUser);
+            order.setOrderStatus("PAID");
+            order.setOrderDate(LocalDateTime.now());
+
+            double totalPrice = 0;
+            List<OrderItem> persistentItems = new ArrayList<>();
+            for (OrderItem item : cartItems) {
+                if (item.getProduct() != null) {
+                    OrderItem orderItem = new OrderItem();
+                    orderItem.setOrder(order);
+                    orderItem.setProduct(item.getProduct());
+                    orderItem.setPrice(item.getPrice());
+                    orderItem.setQuantity(item.getQuantity());
+                    totalPrice += item.getPrice() * item.getQuantity();
+                    persistentItems.add(orderItem);
+                }
+            }
+            order.setTotalPrice(BigDecimal.valueOf(totalPrice));
+            order.setOrderItems(persistentItems);
+            orderService.saveOrder(order);
+            model.addAttribute("order", order);
+        }
+
+        session.removeAttribute("cartItems");
+        model.addAttribute("message", "Your payment was processed successfully via Razorpay!");
+        return "payment-success";
+    }
+
+    @PostMapping("/razorpayOrder")
+    @ResponseBody
+    public Map<String, Object> createRazorpayOrder(HttpSession session) {
+        Map<String, Object> response = new HashMap<>();
+        User sessionUser = (User) session.getAttribute("loggedInUser");
+        if (sessionUser == null) {
+            response.put("error", "Please sign in with your credentials before making payment.");
+            return response;
+        }
+
+        try {
+            List<OrderItem> cartItems = getCartItemsFromSession(session);
+            if (cartItems == null || cartItems.isEmpty()) {
+                throw new IllegalStateException("Cart is empty");
+            }
+
+            double totalPrice = cartItems.stream()
+                    .mapToDouble(item -> item.getPrice() * item.getQuantity())
+                    .sum();
+
+            com.razorpay.Order razorpayOrder = razorpayService.createOrder(totalPrice, "INR", "OrderReceipt#" + System.currentTimeMillis());
+
+            response.put("id", razorpayOrder.get("id"));
+            response.put("amount", razorpayOrder.get("amount"));
+            response.put("currency", razorpayOrder.get("currency"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("error", "Failed to initialize payment gateway: " + e.getMessage());
+        }
+        return response;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<OrderItem> getCartItemsFromSession(HttpSession session) {
+        List<OrderItem> cartItems = (List<OrderItem>) session.getAttribute("cartItems");
+        if (cartItems == null) {
+            cartItems = new ArrayList<>();
+            session.setAttribute("cartItems", cartItems);
+        }
+        return cartItems;
+    }
+}

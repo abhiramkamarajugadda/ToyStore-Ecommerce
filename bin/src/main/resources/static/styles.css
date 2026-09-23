@@ -1,0 +1,146 @@
+/* Global Styles */
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f6f9; /* Light greyish background */
+    color: #333;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    font-size: 2rem;
+    color: #1e88e5; /* Primary blue color */
+    margin-bottom: 30px;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    text-align: center;
+    padding: 12px;
+    border: 1px solid #ddd;
+}
+
+th {
+    background-color: #1976d2; /* Primary blue */
+    color: white;
+    font-weight: bold;
+}
+
+td {
+    background-color: #e3f2fd; /* Light blue background for cells */
+}
+
+tr:nth-child(even) {
+    background-color: #f1f8ff; /* Alternating row colors */
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    font-weight: bold;
+    color: #1e88e5;
+}
+
+input[type="text"], input[type="password"], select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    margin-top: 5px;
+}
+
+/* Button Styles */
+.btn-primary, .btn-secondary {
+    padding: 12px 25px;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.btn-primary {
+    background-color: #1e88e5; /* Primary blue */
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #1565c0; /* Darker blue */
+}
+
+.btn-secondary {
+    background-color: #cccccc;
+    color: #333;
+    border: none;
+}
+
+.btn-secondary:hover {
+    background-color: #b3b3b3; /* Light grey hover */
+}
+
+/* Action Button Styles */
+.btn-warning, .btn-danger {
+    padding: 6px 15px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.btn-warning {
+    background-color: #ff9800;
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #fb8c00;
+}
+
+.btn-danger {
+    background-color: #f44336;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #d32f2f;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    table, .form-group {
+        width: 100%;
+    }
+
+    .btn-primary, .btn-secondary, .btn-warning, .btn-danger {
+        width: 100%;
+        margin-top: 10px;
+    }
+}

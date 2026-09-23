@@ -259,7 +259,7 @@ Add your screenshots to an `images/` folder and reference them like
 this:
 
 ``` markdown
-![Home Page](images/home.png)
+![Home Page](Screenshot 2026-09-23 142245.jpeg)
 ![Products](images/products.png)
 ![Cart](images/cart.png)
 ![Payment](images/payment.png)

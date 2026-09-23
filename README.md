@@ -253,18 +253,7 @@ The generated WAR file is placed in the `target/` directory.
 -   Analytics dashboard
 -   Cloud deployment
 
-## 📸 Screenshots
 
-Add your screenshots to an `images/` folder and reference them like
-this:
-
-``` markdown
-![Home Page](Screenshot 2026-09-23 142245.jpeg)
-![Products](images/products.png)
-![Cart](images/cart.png)
-![Payment](images/payment.png)
-![Admin Dashboard](images/admin-dashboard.png)
-```
 
 ## 🎯 Learning Outcomes
 

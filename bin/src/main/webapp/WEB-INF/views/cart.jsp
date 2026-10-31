@@ -76,7 +76,7 @@
                     if (data && data.id) {
                         // Initialize Razorpay payment
                         const options = {
-                            key: "***REMOVED***", // Replace with your Razorpay key
+                            key: data.key, // Razorpay key ID from RAZORPAY_KEY_ID
                             amount: data.amount, // Amount in paise
                             currency: data.currency,
                             name: "CGEcom",

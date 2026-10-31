@@ -190,7 +190,7 @@
 
                     if (data && data.id) {
                         const options = {
-                            key: "***REMOVED***",
+                            key: data.key, // Razorpay key ID from RAZORPAY_KEY_ID
                             amount: data.amount,
                             currency: data.currency || "INR",
                             name: "Codegnan E-Commerce",

@@ -107,17 +107,24 @@ Tables are created by Hibernate (`spring.jpa.hibernate.ddl-auto=update`).
    ```sql
    CREATE DATABASE ecomtoy;
    ```
-3. In `src/main/resources/application.properties`, set your own values for:
-   - `spring.datasource.username` and `spring.datasource.password`
-   - `razorpay.key` and `razorpay.secret` (Razorpay test keys)
-   - `spring.mail.username` and `spring.mail.password` (an SMTP app password)
+3. Set these environment variables (see `.env.example`); `application.properties` reads them and never stores real values:
+   | Variable | Purpose |
+   |---|---|
+   | `DB_USERNAME`, `DB_PASSWORD` | MySQL credentials |
+   | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Razorpay test API keys (the key ID is also sent to the checkout page) |
+   | `MAIL_USERNAME`, `MAIL_PASSWORD` | Gmail address and SMTP app password for welcome emails |
+   ```bash
+   export DB_USERNAME=root DB_PASSWORD=your_mysql_password
+   export RAZORPAY_KEY_ID=rzp_test_xxx RAZORPAY_KEY_SECRET=your_secret
+   export MAIL_USERNAME=you@gmail.com MAIL_PASSWORD=your_app_password
+   ```
 4. Run the application. The project contains two `@SpringBootApplication` classes, so name the main class explicitly.
    ```bash
    mvn spring-boot:run -Dspring-boot.run.main-class=com.codegnan.cgecom.JspwithbootApplication
    ```
 5. Open `http://localhost:8081`.
 
-Use your own credentials and keep them out of version control, for example through environment variables.
+The seeded logins created by `DataInitializer` (an `admin` and a `user` account) are demo-only defaults for local testing; change or remove them before any real use.
 
 ## Author
 

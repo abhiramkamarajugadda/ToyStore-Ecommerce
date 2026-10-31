@@ -36,6 +36,9 @@ public class CartController {
     private final UserService userService;
     private final RazorpayService razorpayService;
 
+    @org.springframework.beans.factory.annotation.Value("${razorpay.key:}")
+    private String razorpayKeyId;
+
     public CartController(ProductService productService, OrderService orderService, UserService userService, RazorpayService razorpayService) {
         this.productService = productService;
         this.orderService = orderService;
@@ -336,6 +339,7 @@ public class CartController {
             response.put("id", razorpayOrder.get("id"));
             response.put("amount", razorpayOrder.get("amount"));
             response.put("currency", razorpayOrder.get("currency"));
+            response.put("key", razorpayKeyId);
         } catch (Exception e) {
             e.printStackTrace();
             response.put("error", "Failed to initialize payment gateway: " + e.getMessage());

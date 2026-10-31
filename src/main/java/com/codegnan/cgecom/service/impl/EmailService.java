@@ -15,16 +15,27 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:haaseth143@gmail.com}")
+    @Value("${spring.mail.username:}")
     private String senderEmail;
+
+    /** Mail is opt-in (MAIL_ENABLED=true). Hosts such as Render free block SMTP, so the default is off. */
+    @Value("${app.mail.enabled:false}")
+    private boolean mailEnabled;
+
+    @Value("${app.base-url:http://localhost:8081}")
+    private String baseUrl;
+
+    public boolean isMailEnabled() {
+        return mailEnabled && mailSender != null && senderEmail != null && !senderEmail.isBlank();
+    }
 
     /**
      * Send a general HTML email
      */
     @Async
     public void sendEmail(String to, String subject, String body) {
-        if (mailSender == null || to == null || to.trim().isEmpty()) {
-            System.err.println("Notice: MailSender not configured or recipient email empty. Skipped sending email to: " + to);
+        if (!isMailEnabled() || to == null || to.trim().isEmpty()) {
+            System.out.println("Mail disabled or recipient empty; skipped email: " + subject);
             return;
         }
 
@@ -47,7 +58,7 @@ public class EmailService {
      */
     @Async
     public void sendWelcomeEmail(String toEmail, String fullName, String username) {
-        if (toEmail == null || toEmail.trim().isEmpty()) {
+        if (!isMailEnabled() || toEmail == null || toEmail.trim().isEmpty()) {
             return;
         }
 
@@ -100,7 +111,7 @@ public class EmailService {
             + "        <div class='coupon-code'>FESTIVE20</div>"
             + "      </div>"
             + "      <div style='text-align: center; margin: 30px 0 10px;'>"
-            + "        <a href='http://localhost:8081/products' class='btn-cta'>Start Exploring Toys &rarr;</a>"
+            + "        <a href='" + baseUrl + "/products' class='btn-cta'>Start Exploring Toys &rarr;</a>"
             + "      </div>"
             + "    </div>"
             + "    <div class='footer'>"

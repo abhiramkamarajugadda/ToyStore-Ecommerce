@@ -20,6 +20,9 @@ import com.codegnan.cgecom.service.iface.ProductService;
 @Service
 public class ProductServiceImpl implements ProductService {
 
+    private static final java.util.Set<String> ALLOWED_IMAGE_EXTENSIONS =
+            java.util.Set.of(".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".avif");
+
     @Value("${file.upload-dir:uploads/images/}")
     private String uploadDir;
 
@@ -75,6 +78,12 @@ public class ProductServiceImpl implements ProductService {
             }
         } else {
             extension = ".jpg";
+        }
+
+        // Accept only raster image types so uploads can never be served as HTML/SVG/script
+        extension = extension.toLowerCase(java.util.Locale.ROOT);
+        if (!ALLOWED_IMAGE_EXTENSIONS.contains(extension)) {
+            throw new IOException("Unsupported image type " + extension + ". Use JPG, PNG, WebP, GIF, BMP or AVIF.");
         }
 
         // Clean base name to avoid path traversal / illegal characters

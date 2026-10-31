@@ -62,12 +62,17 @@ public class UserController {
                 return "user-create";
             }
 
+            // Only an admin may choose a role; everyone else is created as a normal USER
+            User creator = (User) session.getAttribute("loggedInUser");
+            boolean creatorIsAdmin = creator != null && "ADMIN".equals(creator.getRole());
+            String role = creatorIsAdmin && user.getRole() != null ? user.getRole() : "USER";
+
             // Save the user to the database with all fields
             userService.createUser(
                 user.getFullName(),
                 user.getUsername(), 
                 user.getPassword(), 
-                user.getRole() != null ? user.getRole() : "USER", 
+                role, 
                 user.getPhone_number(), 
                 user.getEmail(),
                 user.getAddress(),
@@ -136,7 +141,7 @@ public class UserController {
             user.getFullName(), 
             user.getUsername(), 
             user.getPassword(), 
-            user.getRole(), 
+            "ADMIN".equals(loggedInUser.getRole()) ? user.getRole() : null, // users cannot change their own role
             user.getPhone_number(), 
             user.getEmail(), 
             user.getAddress(), 

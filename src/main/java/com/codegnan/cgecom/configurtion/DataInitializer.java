@@ -1,5 +1,6 @@
 package com.codegnan.cgecom.configurtion;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -16,12 +17,18 @@ public class DataInitializer implements CommandLineRunner {
     private final ProductRepository productRepository;
 
     private final PasswordEncoder passwordEncoder;
+    private final String adminPassword;
+    private final String userPassword;
 
     public DataInitializer(UserRepository userRepository, ProductRepository productRepository,
-                           PasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder,
+                           @Value("${app.demo.admin-password:admin123}") String adminPassword,
+                           @Value("${app.demo.user-password:user123}") String userPassword) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.passwordEncoder = passwordEncoder;
+        this.adminPassword = adminPassword;
+        this.userPassword = userPassword;
     }
 
     @Override
@@ -30,7 +37,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!userRepository.existsByUsername("admin")) {
             User admin = new User();
             admin.setUsername("admin");
-            admin.setPassword(passwordEncoder.encode("admin123")); // demo only
+            admin.setPassword(passwordEncoder.encode(adminPassword)); // set ADMIN_PASSWORD in production
             admin.setRole("ADMIN");
             admin.setEmail("admin@toystore.com");
             admin.setPhone_number("9876543210");
@@ -40,7 +47,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!userRepository.existsByUsername("user")) {
             User customer = new User();
             customer.setUsername("user");
-            customer.setPassword(passwordEncoder.encode("user123")); // demo only
+            customer.setPassword(passwordEncoder.encode(userPassword)); // public demo shopper account
             customer.setRole("USER");
             customer.setEmail("customer@toystore.com");
             customer.setPhone_number("9876543211");

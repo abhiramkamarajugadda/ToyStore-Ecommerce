@@ -16,6 +16,10 @@ COPY --from=build /build/target/*.war app.war
 COPY uploads ./uploads
 RUN chown -R appuser /app
 USER appuser
+# Fits the 512 MB free tier on Render: capped heap, small thread stacks, serial GC
+ENV JAVA_TOOL_OPTIONS="-Xmx300m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m" \
+    PORT=8081
 EXPOSE 8081
-# Database, Razorpay and mail settings come from environment variables (see .env.example)
+# Database, Razorpay and mail settings come from environment variables (see .env.example).
+# The server listens on $PORT (Render sets it automatically).
 ENTRYPOINT ["java", "-jar", "/app/app.war"]

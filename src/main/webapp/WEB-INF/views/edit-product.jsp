@@ -75,8 +75,8 @@
                 </div>
 
                 <div class="p-3 border border-2 border-dashed rounded-4 text-center bg-body-tertiary">
-                    <p class="small text-muted mb-2">Upload any image file (PNG, JPG, WebP, GIF, SVG, BMP, AVIF) &bull; Max 50MB</p>
-                    <input type="file" id="imageFileInput" name="imageFile" class="form-control form-control-sm mx-auto mb-3" style="max-width: 380px;" accept="image/*, .jpg, .jpeg, .png, .webp, .gif, .svg, .bmp, .jfif, .ico, .tiff, .avif, .heic">
+                    <p class="small text-muted mb-2">Upload any image file (PNG, JPG, WebP, GIF, BMP, AVIF) &bull; Max 5MB</p>
+                    <input type="file" id="imageFileInput" name="imageFile" class="form-control form-control-sm mx-auto mb-3" style="max-width: 380px;" accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.avif">
                     
                     <div class="d-flex align-items-center justify-content-center gap-2 mb-3">
                         <hr class="flex-grow-1 my-0 opacity-25">

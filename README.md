@@ -1,273 +1,125 @@
-# 🧸 ToyStore --- E-Commerce Web Application
+# ToyStore: E-Commerce Web Application
 
-> **Play • Learn • Grow**\
-> A modern toy-store e-commerce web application built with Java, Spring
-> Boot, JSP/JSTL, Spring Data JPA, and MySQL.
+A full-stack toy store built with Spring Boot, Spring MVC, Spring Data JPA, JSP/JSTL and MySQL, with Razorpay payments and HTML welcome emails.
 
-## 📌 Project Overview
+## Features
 
-**ToyStore** is a web-based e-commerce application designed to provide a
-simple and user-friendly platform for browsing toys, managing a shopping
-cart, placing orders, making online payments, and receiving
-order-related notifications.
+- **Accounts:** registration (full name, username, email, phone, address, city, pincode), login, logout and session-based authentication
+- **Roles:** `ADMIN` and `USER` roles; admin pages check the session role before allowing access
+- **Catalog:** product listing with keyword search and category filter
+- **Admin product management:** add, edit and delete products, including image upload (multipart, stored under `uploads/images/`)
+- **Cart:** session cart with add, update quantity, remove, clear and a live item count endpoint
+- **Checkout and orders:** places an `Order` with `OrderItem` rows, then shows the order history and order detail pages
+- **Razorpay payments:** creates a Razorpay order through the Razorpay Java SDK (`POST /cart/razorpayOrder`) and records the order as `PAID` on success
+- **Admin dashboard:** total revenue, total orders, products and users, plus order status updates
+- **User management (admin):** create, edit and delete users
+- **Email:** asynchronous HTML welcome email on registration through Spring Mail (`JavaMailSender`)
+- **Seed data:** `DataInitializer` creates a default admin and a default user on first start
 
-The application follows a layered Spring Boot architecture with JSP/JSTL
-for the web interface, Spring MVC for request handling, Spring Data
-JPA/Hibernate for database access, and MySQL for persistent data
-storage.
+## Tech Stack
 
-## ✨ Key Features
+| Layer | Technology |
+|---|---|
+| Language | Java 17 |
+| Framework | Spring Boot 3.3.6, Spring MVC |
+| Persistence | Spring Data JPA, Hibernate, MySQL (`mysql-connector-j`) |
+| Views | JSP, JSTL (Tomcat Jasper) |
+| Payments | Razorpay Java SDK 1.4.8 |
+| Email | Spring Boot Starter Mail |
+| Build | Maven (WAR packaging, Maven Wrapper included) |
 
-### 👤 User Management
+## Architecture
 
--   User registration and login
--   User authentication
--   Profile and address management
--   Role-based access for users and administrators
+Layered Spring MVC application:
 
-### 🧸 Product Management
-
--   Browse available toys
--   View product details
--   Organize products by category
--   Product search and filtering
--   Admin product management
--   Stock/inventory management
-
-### 🛒 Cart & Order Management
-
--   Add products to cart
--   Update product quantities
--   Remove products from cart
--   Place orders
--   View order history
--   Track order status
-
-### 💳 Online Payment
-
--   Razorpay payment gateway integration
--   Secure online payment processing
--   Payment status handling
--   Transaction-related information
-
-### 📧 Email Notifications
-
--   Order confirmation emails
--   Payment/order updates
--   Account-related notifications
-
-### 👨‍💼 Admin Management
-
--   Manage users
--   Manage products and categories
--   View and process orders
--   Track payments
--   Manage inventory
--   View application information and reports
-
-## 🏗️ System Architecture
-
-``` text
-Client / User → JSP Views → Spring MVC Controller → Service Layer
-                                      ↓
-                              Repository Layer
-                                      ↓
-                                  MySQL DB
-
-External Services: Razorpay (Payments) | Spring Mail (Notifications)
+```text
+JSP views  ->  Controllers  ->  Services (interface + impl)  ->  Spring Data JPA repositories  ->  MySQL
+                                     |
+                                     +-> RazorpayService (payments), EmailService (Spring Mail)
 ```
 
-## 🔄 Application Workflow
-
-``` text
-Registration / Login
-        ↓
-Browse / Search Products
-        ↓
-Select Product → Add to Cart
-        ↓
-Review Cart → Place Order
-        ↓
-Razorpay Payment
-        ↓
-Order Confirmation + Email
-        ↓
-Order Processing
-        ↓
-Delivery / Order Tracking
+```text
+src/main/java/com/codegnan/cgecom/
+  configurtion/      DataInitializer, WebConfig (serves uploaded images)
+  controllers/       Admin, Cart, Login, Order, Payment, Product, User controllers
+  model/             User, Product, Order, OrderItem (JPA entities)
+  repositories/      UserRepository, ProductRepository, OrderRepository
+  service/iface/     UserService, ProductService, OrderService
+  service/impl/      Service implementations, RazorpayService, EmailService, PaymentService
+src/main/java/com/codegnan/cgecom/JspwithbootApplication.java   Spring Boot entry point (@EnableAsync)
+src/main/webapp/WEB-INF/views/                        JSP pages
 ```
 
-## 🛠️ Technology Stack
+## Routes
 
-  Layer                  Technology
-  ---------------------- -----------------------------------
-  Programming Language   Java 17
-  Backend                Spring Boot 3.3.6
-  Web Framework          Spring MVC
-  View                   JSP / JSTL
-  ORM                    Hibernate / JPA
-  Data Access            Spring Data JPA
-  Database               MySQL
-  Payment                Razorpay Java SDK 1.4.8
-  Email                  Spring Boot Starter Mail
-  Build Tool             Maven
-  Development            Spring Tool Suite / IntelliJ IDEA
-  Version Control        Git / GitHub
+| Method | Path | Description |
+|---|---|---|
+| GET | `/` | Landing page |
+| GET, POST | `/login` | Login page and login submit |
+| GET, POST | `/register` | Register page and registration submit |
+| GET | `/logout` | End the session |
+| GET | `/products` | Product list (`search`, `category` query params) |
+| GET, POST | `/products/add` | Add product (admin) |
+| GET, POST | `/products/edit/{id}` | Edit product (admin) |
+| GET | `/products/delete/{id}` | Delete product (admin) |
+| GET | `/cart` | View cart |
+| GET | `/cart/count` | Cart item count (JSON) |
+| GET, POST | `/cart/add` | Add a product to the cart |
+| GET, POST | `/cart/update` | Update quantity |
+| GET, POST | `/cart/remove/{productId}` | Remove an item |
+| GET, POST | `/cart/clear` | Empty the cart |
+| GET, POST | `/cart/checkout` | Place the order |
+| POST | `/cart/razorpayOrder` | Create a Razorpay order (JSON) |
+| GET | `/cart/payment-success` | Save the paid order and show confirmation |
+| GET | `/orders` | Order history for the logged-in user |
+| GET | `/orders/{id}` | Order detail |
+| GET | `/admin/dashboard` | Admin dashboard |
+| POST | `/admin/orders/status/{id}` | Update order status (admin) |
+| GET | `/users` | List users (admin) |
+| GET, POST | `/users/create` | Create user (admin) |
+| GET | `/users/edit/{id}` | Edit user form (admin) |
+| POST | `/users/update/{id}` | Update user (admin) |
+| GET | `/users/delete/{id}` | Delete user (admin) |
+| GET | `/payment/checkout` | Payment page for an amount |
+| POST | `/payment/verify` | Payment callback page |
 
-## 🗄️ Database Design
+## Data Model
 
-The application uses MySQL for persistent storage. The main business
-entities are organized around users, products, categories, orders, order
-items, payments, and delivery information.
+| Entity | Table | Key fields | Relationships |
+|---|---|---|---|
+| `User` | `users` | id, username (unique), full_name, password, role, email, phone_number, address, city, pincode | One user has many orders |
+| `Product` | `product` | id, name, description, price, image_path, category | Referenced by order items |
+| `Order` | `orders` | id, user_id, totalPrice, orderStatus, order_date | Many-to-one user, one-to-many order items |
+| `OrderItem` | `order_items` | id, order_id, product_id, quantity, price | Many-to-one order and product |
 
-``` text
-User 1 ───── M Order
-Order 1 ──── M OrderItem
-Product M ─── 1 Category
-OrderItem M ─ 1 Product
-Order 1 ───── 1 Payment
-Order 1 ───── 1 Delivery
-```
+Tables are created by Hibernate (`spring.jpa.hibernate.ddl-auto=update`).
 
-## 📂 Project Structure
+## Getting Started
 
-``` text
-ToyStore/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   ├── resources/
-│   │   └── webapp/
-│   │       └── WEB-INF/
-│   │           └── views/
-│   └── test/
-├── pom.xml
-├── .gitignore
-└── README.md
-```
+**Prerequisites:** JDK 17, MySQL 8, Maven (or the included Maven Wrapper: `sh mvnw spring-boot:run`).
 
-> Exact package and JSP folder names may differ according to the project
-> source structure.
+1. Clone the repository.
+   ```bash
+   git clone https://github.com/abhiramkamarajugadda/ToyStore-Ecommerce.git
+   cd ToyStore-Ecommerce
+   ```
+2. Create the database.
+   ```sql
+   CREATE DATABASE ecomtoy;
+   ```
+3. In `src/main/resources/application.properties`, set your own values for:
+   - `spring.datasource.username` and `spring.datasource.password`
+   - `razorpay.key` and `razorpay.secret` (Razorpay test keys)
+   - `spring.mail.username` and `spring.mail.password` (an SMTP app password)
+4. Run the application. The project contains two `@SpringBootApplication` classes, so name the main class explicitly.
+   ```bash
+   mvn spring-boot:run -Dspring-boot.run.main-class=com.codegnan.cgecom.JspwithbootApplication
+   ```
+5. Open `http://localhost:8081`.
 
-## ⚙️ Prerequisites
+Use your own credentials and keep them out of version control, for example through environment variables.
 
--   JDK 17
--   Maven
--   MySQL Server
--   Git (optional)
--   Spring Tool Suite or IntelliJ IDEA
+## Author
 
-## 🚀 Getting Started
-
-### 1. Clone the repository
-
-``` bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
-cd ToyStore
-```
-
-### 2. Create the MySQL database
-
-``` sql
-CREATE DATABASE toystore;
-```
-
-If your application uses another database name, use that name in the
-configuration.
-
-### 3. Configure MySQL
-
-Update `application.properties` with your local database credentials:
-
-``` properties
-spring.datasource.url=jdbc:mysql://localhost:3306/toystore
-spring.datasource.username=root
-spring.datasource.password=YOUR_PASSWORD
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-```
-
-### 4. Configure Razorpay
-
-Use your own Razorpay credentials and keep the secret outside GitHub:
-
-``` properties
-razorpay.key.id=YOUR_RAZORPAY_KEY
-razorpay.key.secret=YOUR_RAZORPAY_SECRET
-```
-
-### 5. Configure Email
-
-Configure the mail server settings required by the application's Spring
-Mail integration. Do not commit passwords or app passwords.
-
-### 6. Build the project
-
-``` bash
-mvn clean install
-```
-
-### 7. Run the application
-
-``` bash
-mvn spring-boot:run
-```
-
-Then open the local URL configured by the application.
-
-## 🔐 Security Notes
-
--   Never commit database passwords.
--   Never commit Razorpay secret keys.
--   Never commit email passwords or app passwords.
--   Prefer environment variables or local configuration for secrets.
--   Keep IDE and build files out of version control.
-
-## 🧪 Testing
-
-Run the available tests with:
-
-``` bash
-mvn test
-```
-
-## 📦 Build
-
-The project is configured with **WAR packaging** and the Spring Boot
-Maven plugin.
-
-``` bash
-mvn clean package
-```
-
-The generated WAR file is placed in the `target/` directory.
-
-## 🌟 Future Enhancements
-
--   Responsive mobile application
--   Wishlist functionality
--   Product reviews and ratings
--   More payment and shipping options
--   Advanced inventory management
--   Personalized toy recommendations
--   Analytics dashboard
--   Cloud deployment
-
-
-
-## 🎯 Learning Outcomes
-
-This project demonstrates practical experience with Java, Spring Boot,
-Spring MVC, JSP/JSTL, Spring Data JPA, Hibernate, MySQL, layered
-architecture, Razorpay integration, Spring Mail, Maven, and Git/GitHub.
-
-## 👨‍💻 Author
-
-**Haaseth Abhiram**\
-ToyStore --- *Play • Learn • Grow* 🧸
-
-## 📄 License
-
-This project is intended for educational and portfolio purposes. Add
-your preferred open-source license here if you plan to distribute it
-publicly.
+**Abhiram Kamarajugadda**
+GitHub: [abhiramkamarajugadda](https://github.com/abhiramkamarajugadda) | Portfolio: [abhiramkamarajugadda.github.io](https://abhiramkamarajugadda.github.io)

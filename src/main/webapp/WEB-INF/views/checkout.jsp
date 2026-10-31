@@ -1,4 +1,4 @@
-<!-- checkout.jsp -->
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,24 +9,26 @@
     <h1>Payment Checkout</h1>
     <button id="rzp-button">Pay Now</button>
 
+    <form id="verifyForm" method="POST" action="/payment/verify">
+        <input type="hidden" name="razorpayPaymentId" id="razorpayPaymentId">
+        <input type="hidden" name="razorpayOrderId" id="razorpayOrderId">
+        <input type="hidden" name="razorpaySignature" id="razorpaySignature">
+    </form>
+
     <script>
         var options = {
-            "key": "YOUR_API_KEY", // Enter the Key ID generated from Razorpay Dashboard
-            "amount": "<%= orderDetails.amount %>", // Amount in paise
+            "key": "${razorpayKey}",
+            "amount": "${amount}",
             "currency": "INR",
             "name": "My E-Commerce",
             "description": "Test Transaction",
-            "order_id": "<%= orderDetails.id %>", // Pass the order ID
+            "order_id": "${razorpayOrderId}",
             "handler": function (response) {
-                alert("Payment successful!");
-                location.href = "/payment/verify?razorpayPaymentId=" + response.razorpay_payment_id + 
-                                "&razorpayOrderId=" + response.razorpay_order_id + 
-                                "&razorpaySignature=" + response.razorpay_signature;
-            },
-            "prefill": {
-                "name": "Test User",
-                "email": "testuser@example.com",
-                "contact": "9876543210"
+                // The server verifies the Razorpay signature before treating the payment as successful.
+                document.getElementById('razorpayPaymentId').value = response.razorpay_payment_id;
+                document.getElementById('razorpayOrderId').value = response.razorpay_order_id;
+                document.getElementById('razorpaySignature').value = response.razorpay_signature;
+                document.getElementById('verifyForm').submit();
             },
             "theme": {
                 "color": "#3399cc"

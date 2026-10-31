@@ -2,10 +2,12 @@ package com.codegnan.cgecom.service.iface;
 
 import java.util.List;
 import com.codegnan.cgecom.model.Order;
+import com.codegnan.cgecom.model.OrderItem;
 import com.codegnan.cgecom.model.User;
 
 public interface OrderService {
     void saveOrder(Order order);
+    Order placeOrder(User user, List<OrderItem> cartItems, String status);
     List<Order> getAllOrders();
     List<Order> getOrdersByUser(User user);
     Order getOrderById(int id);

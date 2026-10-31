@@ -1,6 +1,7 @@
 package com.codegnan.cgecom.configurtion;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.codegnan.cgecom.model.Product;
@@ -14,9 +15,13 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
 
-    public DataInitializer(UserRepository userRepository, ProductRepository productRepository) {
+    private final PasswordEncoder passwordEncoder;
+
+    public DataInitializer(UserRepository userRepository, ProductRepository productRepository,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -25,7 +30,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!userRepository.existsByUsername("admin")) {
             User admin = new User();
             admin.setUsername("admin");
-            admin.setPassword("admin123");
+            admin.setPassword(passwordEncoder.encode("admin123")); // demo only
             admin.setRole("ADMIN");
             admin.setEmail("admin@toystore.com");
             admin.setPhone_number("9876543210");
@@ -35,7 +40,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!userRepository.existsByUsername("user")) {
             User customer = new User();
             customer.setUsername("user");
-            customer.setPassword("user123");
+            customer.setPassword(passwordEncoder.encode("user123")); // demo only
             customer.setRole("USER");
             customer.setEmail("customer@toystore.com");
             customer.setPhone_number("9876543211");

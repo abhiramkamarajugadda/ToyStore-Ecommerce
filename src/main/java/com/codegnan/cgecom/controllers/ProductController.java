@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+
+import jakarta.validation.Valid;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -64,12 +67,17 @@ public class ProductController {
 
     // Handle add product submission
     @PostMapping("/products/add")
-    public String addNewProduct(@ModelAttribute Product product,
+    public String addNewProduct(@Valid @ModelAttribute Product product,
+                                BindingResult bindingResult,
                                 HttpSession session,
                                 RedirectAttributes redirectAttributes) {
         User loggedInUser = (User) session.getAttribute("loggedInUser");
         if (loggedInUser == null || !"ADMIN".equals(loggedInUser.getRole())) {
             return "redirect:/login";
+        }
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("error", firstError(bindingResult));
+            return "redirect:/products/add";
         }
 
         try {
@@ -113,12 +121,17 @@ public class ProductController {
     // Handle update product submission
     @PostMapping("/products/edit/{id}")
     public String updateProduct(@PathVariable int id, 
-                                @ModelAttribute Product product,
+                                @Valid @ModelAttribute Product product,
+                                BindingResult bindingResult,
                                 HttpSession session,
                                 RedirectAttributes redirectAttributes) {
         User loggedInUser = (User) session.getAttribute("loggedInUser");
         if (loggedInUser == null || !"ADMIN".equals(loggedInUser.getRole())) {
             return "redirect:/login";
+        }
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("error", firstError(bindingResult));
+            return "redirect:/products/edit/" + id;
         }
 
         try {
@@ -163,5 +176,13 @@ public class ProductController {
         productService.deleteProduct(id);
         redirectAttributes.addFlashAttribute("success", "Product deleted successfully.");
         return "redirect:/products";
+    }
+
+    private static String firstError(BindingResult bindingResult) {
+        if (bindingResult.getFieldError("price") != null
+                && bindingResult.getFieldError("price").isBindingFailure()) {
+            return "Please enter a valid price.";
+        }
+        return bindingResult.getAllErrors().get(0).getDefaultMessage();
     }
 }

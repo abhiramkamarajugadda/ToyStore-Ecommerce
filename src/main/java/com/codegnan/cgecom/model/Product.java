@@ -1,5 +1,9 @@
 package com.codegnan.cgecom.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,11 +20,15 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
+    @NotBlank(message = "Product name is required.")
+    @Size(max = 255, message = "Product name must be at most 255 characters.")
     private String name;
     
     @Column(length = 1000)
+    @Size(max = 1000, message = "Description must be at most 1000 characters.")
     private String description;
     
+    @Positive(message = "Price must be greater than zero.")
     private double price;
     
     @Column(name = "image_path")

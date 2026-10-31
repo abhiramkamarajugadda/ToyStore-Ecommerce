@@ -1,5 +1,7 @@
 # ToyStore: E-Commerce Web Application
 
+[![CI](https://github.com/abhiramkamarajugadda/ToyStore-Ecommerce/actions/workflows/ci.yml/badge.svg)](https://github.com/abhiramkamarajugadda/ToyStore-Ecommerce/actions/workflows/ci.yml)
+
 A full-stack toy store built with Spring Boot, Spring MVC, Spring Data JPA, JSP/JSTL and MySQL, with Razorpay payments and HTML welcome emails.
 
 ## Features
@@ -9,12 +11,14 @@ A full-stack toy store built with Spring Boot, Spring MVC, Spring Data JPA, JSP/
 - **Catalog:** product listing with keyword search and category filter
 - **Admin product management:** add, edit and delete products, including image upload (multipart, stored under `uploads/images/`)
 - **Cart:** session cart with add, update quantity, remove, clear and a live item count endpoint
-- **Checkout and orders:** places an `Order` with `OrderItem` rows, then shows the order history and order detail pages
-- **Razorpay payments:** creates a Razorpay order through the Razorpay Java SDK (`POST /cart/razorpayOrder`) and records the order as `PAID` on success
+- **Checkout and orders:** places an `Order` with its `OrderItem` rows in a single `@Transactional` service call, then shows the order history and order detail pages
+- **Razorpay payments:** creates a Razorpay order through the Razorpay Java SDK (`POST /cart/razorpayOrder`); `POST /payment/verify` checks the payment signature with the key secret before the order is saved as `PAID`
 - **Admin dashboard:** total revenue, total orders, products and users, plus order status updates
 - **User management (admin):** create, edit and delete users
 - **Email:** asynchronous HTML welcome email on registration through Spring Mail (`JavaMailSender`)
 - **Seed data:** `DataInitializer` creates a default admin and a default user on first start
+- **Validation:** Bean Validation (`@Valid`) on the registration form and the product add/edit forms
+- **Error handling:** a `@ControllerAdvice` global exception handler renders one error page with the correct HTTP status (400, 404, 413, 500)
 
 ## Tech Stack
 
@@ -26,6 +30,10 @@ A full-stack toy store built with Spring Boot, Spring MVC, Spring Data JPA, JSP/
 | Views | JSP, JSTL (Tomcat Jasper) |
 | Payments | Razorpay Java SDK 1.4.8 |
 | Email | Spring Boot Starter Mail |
+| Security | BCrypt password hashing (`spring-security-crypto`) |
+| Testing | JUnit 5, Mockito, `@WebMvcTest`, `@DataJpaTest`, H2 (test scope), JaCoCo |
+| CI/CD | GitHub Actions (`mvn -B verify` on JDK 17, Docker image build) |
+| Containers | Multi-stage Dockerfile, Docker Compose with MySQL 8 |
 | Build | Maven (WAR packaging, Maven Wrapper included) |
 
 ## Architecture
@@ -40,12 +48,14 @@ JSP views  ->  Controllers  ->  Services (interface + impl)  ->  Spring Data JPA
 
 ```text
 src/main/java/com/codegnan/cgecom/
-  configurtion/      DataInitializer, WebConfig (serves uploaded images)
+  configurtion/      DataInitializer, WebConfig (serves uploaded images), SecurityConfig (BCrypt encoder)
   controllers/       Admin, Cart, Login, Order, Payment, Product, User controllers
   model/             User, Product, Order, OrderItem (JPA entities)
   repositories/      UserRepository, ProductRepository, OrderRepository
   service/iface/     UserService, ProductService, OrderService
-  service/impl/      Service implementations, RazorpayService, EmailService, PaymentService
+  dto/               RegistrationForm (validated registration input)
+  exception/         GlobalExceptionHandler, PaymentVerificationException
+  service/impl/      Service implementations, CartService, RazorpayService, EmailService
 src/main/java/com/codegnan/cgecom/JspwithbootApplication.java   Spring Boot entry point (@EnableAsync)
 src/main/webapp/WEB-INF/views/                        JSP pages
 ```
@@ -70,7 +80,7 @@ src/main/webapp/WEB-INF/views/                        JSP pages
 | GET, POST | `/cart/clear` | Empty the cart |
 | GET, POST | `/cart/checkout` | Place the order |
 | POST | `/cart/razorpayOrder` | Create a Razorpay order (JSON) |
-| GET | `/cart/payment-success` | Save the paid order and show confirmation |
+| GET | `/cart/payment-success` | Legacy link; redirects to `/orders` (no order is created here) |
 | GET | `/orders` | Order history for the logged-in user |
 | GET | `/orders/{id}` | Order detail |
 | GET | `/admin/dashboard` | Admin dashboard |
@@ -81,7 +91,7 @@ src/main/webapp/WEB-INF/views/                        JSP pages
 | POST | `/users/update/{id}` | Update user (admin) |
 | GET | `/users/delete/{id}` | Delete user (admin) |
 | GET | `/payment/checkout` | Payment page for an amount |
-| POST | `/payment/verify` | Payment callback page |
+| POST | `/payment/verify` | Verifies the Razorpay signature, then saves the `PAID` order |
 
 ## Data Model
 
@@ -125,6 +135,44 @@ Tables are created by Hibernate (`spring.jpa.hibernate.ddl-auto=update`).
 5. Open `http://localhost:8081`.
 
 The seeded logins created by `DataInitializer` (an `admin` and a `user` account) are demo-only defaults for local testing; change or remove them before any real use.
+
+## Running with Docker
+
+```bash
+cp .env.example .env        # then fill in your own values; .env is git-ignored
+docker compose up --build
+```
+
+This starts MySQL 8 and the app (multi-stage build: Maven builds the WAR, a slim JRE image runs it). Open `http://localhost:8081`.
+
+## Tests
+
+```bash
+mvn -B verify
+```
+
+Runs 32 tests on an in-memory H2 database (no MySQL needed) and writes a JaCoCo coverage report to `target/site/jacoco/`.
+
+| Test class | Type | What it covers |
+|---|---|---|
+| `UserServiceImplTest` | Mockito unit | BCrypt hashing on create and update, login against the hash, upgrade of legacy plain-text rows |
+| `OrderServiceImplTest` | Mockito unit | Order totals (BigDecimal), line items, empty cart and missing user rejected |
+| `CartServiceTest` | Unit | Add, merge, increase, decrease, remove, totals and item count |
+| `RazorpayServiceTest` | Unit | Valid signature accepted; tampered signature, ids or missing secret rejected |
+| `PaymentControllerTest` | `@WebMvcTest` | Valid payment creates a `PAID` order; forged signature or foreign order id returns 400 and creates nothing |
+| `LoginControllerTest` | `@WebMvcTest` | Login redirects, registration validation errors, valid registration |
+| `RepositoryTest` | `@DataJpaTest` | Product search and category queries, order cascade and ordering |
+| `SeededLoginIntegrationTest` | `@SpringBootTest` | Seeded demo accounts are stored as BCrypt hashes and still sign in |
+
+GitHub Actions runs the same `mvn -B verify` on JDK 17 and builds the Docker image on every push.
+
+## Security Notes
+
+- Passwords are hashed with BCrypt. Accounts created before hashing was added are upgraded to a hash on their next successful login.
+- An order is marked `PAID` only after `Utils.verifyPaymentSignature` confirms the Razorpay signature with `RAZORPAY_KEY_SECRET` and the Razorpay order id matches the one created in the same session. Invalid signatures get HTTP 400 and no order.
+- All credentials and API keys are read from environment variables; none are committed.
+- The seeded `admin` and `user` accounts are demo-only. Change or remove them before any real deployment.
+- Still to do for production: CSRF protection and role checks through Spring Security instead of manual session checks.
 
 ## Author
 

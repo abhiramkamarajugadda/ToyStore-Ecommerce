@@ -171,6 +171,27 @@
 
 <!-- Razorpay Integration Script -->
 <script>
+    function submitPaymentVerification(response) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/payment/verify';
+        const fields = {
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpayOrderId: response.razorpay_order_id,
+            razorpaySignature: response.razorpay_signature
+        };
+        Object.keys(fields).forEach(function (name) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = fields[name] || '';
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+<script>
     document.addEventListener('DOMContentLoaded', function () {
         const rzpBtn = document.getElementById("razorpayCheckoutBtn");
         if (rzpBtn) {
@@ -197,7 +218,8 @@
                             description: "Order Checkout Payment",
                             order_id: data.id,
                             handler: function (response) {
-                                window.location.href = "/cart/payment-success";
+                                // Send the gateway response to the server, which verifies the signature before saving the order.
+                                submitPaymentVerification(response);
                             },
                             prefill: {
                                 name: "${loggedInUser != null ? loggedInUser.username : 'Customer'}",

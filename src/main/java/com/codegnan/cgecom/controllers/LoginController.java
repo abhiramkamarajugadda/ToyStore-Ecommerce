@@ -2,6 +2,12 @@ package com.codegnan.cgecom.controllers;
 
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
+
+import com.codegnan.cgecom.dto.RegistrationForm;
+
+import jakarta.validation.Valid;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -76,11 +82,14 @@ public class LoginController {
 
 	// Handle full 8-field registration
 	@PostMapping("/register")
-	public String registerUser(@RequestParam(required = false) String fullName, @RequestParam String username,
-			@RequestParam String email, @RequestParam String phoneNumber,
-			@RequestParam(required = false) String address, @RequestParam(required = false) String city,
-			@RequestParam(required = false) String pincode, @RequestParam String password,
-			@RequestParam(required = false) String confirmPassword, RedirectAttributes redirectAttributes) {
+	public String registerUser(@Valid @ModelAttribute RegistrationForm form, BindingResult bindingResult,
+			RedirectAttributes redirectAttributes) {
+		if (bindingResult.hasErrors()) {
+			redirectAttributes.addFlashAttribute("error", bindingResult.getAllErrors().get(0).getDefaultMessage());
+			return "redirect:/login?tab=register";
+		}
+		String fullName = form.getFullName(), username = form.getUsername().trim(), email = form.getEmail().trim();
+		String password = form.getPassword(), confirmPassword = form.getConfirmPassword();
 		if (confirmPassword != null && !confirmPassword.trim().isEmpty() && !confirmPassword.equals(password)) {
 			redirectAttributes.addFlashAttribute("error", "Passwords do not match! Please check and try again.");
 			return "redirect:/login?tab=register";
@@ -92,7 +101,8 @@ public class LoginController {
 			return "redirect:/login?tab=register";
 		}
 
-		userService.createUser(fullName, username, password, "USER", phoneNumber, email, address, city, pincode);
+		userService.createUser(fullName, username, password, "USER", form.getPhoneNumber(), email, form.getAddress(),
+				form.getCity(), form.getPincode());
 
 		// Send Welcome Email to registered email address asynchronously
 		if (emailService != null && email != null && !email.trim().isEmpty()) {

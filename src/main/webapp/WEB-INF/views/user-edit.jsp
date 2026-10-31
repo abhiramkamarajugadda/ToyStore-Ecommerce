@@ -39,7 +39,7 @@
                     <label class="form-label fw-bold small text-muted text-uppercase" for="password">Password</label>
                     <div class="form-floating-custom">
                         <i class="bi bi-lock input-icon-left"></i>
-                        <input type="password" id="password" name="password" value="${user.password}" required>
+                        <input type="password" id="password" name="password" value="" placeholder="Leave blank to keep the current password" autocomplete="new-password">
                     </div>
                 </div>
                 <div class="col-md-6">

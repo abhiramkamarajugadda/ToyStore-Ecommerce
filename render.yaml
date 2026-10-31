@@ -9,7 +9,8 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /products
     envVars:
-      # jdbc:mysql://<aiven-host>:<port>/defaultdb?sslMode=REQUIRED
+      # Shared Aiven service, own schema (created on first start):
+      # jdbc:mysql://<aiven-host>:<port>/toystore?sslMode=REQUIRED&createDatabaseIfNotExist=true
       - key: SPRING_DATASOURCE_URL
         sync: false
       - key: SPRING_DATASOURCE_USERNAME

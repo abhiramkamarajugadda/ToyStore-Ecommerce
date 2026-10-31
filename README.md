@@ -162,7 +162,7 @@ Both services have free plans with no card needed.
 3. Fill in the environment variables Render asks for:
    | Variable | Value |
    |---|---|
-   | `SPRING_DATASOURCE_URL` | `jdbc:mysql://<aiven-host>:<port>/defaultdb?sslMode=REQUIRED` |
+   | `SPRING_DATASOURCE_URL` | `jdbc:mysql://<aiven-host>:<port>/toystore?sslMode=REQUIRED&createDatabaseIfNotExist=true` (own `toystore` schema, created on first start, so one free Aiven service can host several apps) |
    | `SPRING_DATASOURCE_USERNAME` | `avnadmin` |
    | `SPRING_DATASOURCE_PASSWORD` | Aiven password |
    | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Razorpay **test mode** keys |
